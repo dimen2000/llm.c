@@ -547,8 +547,9 @@ void multi_gpu_async_reduce_gradient(
             assert(pointers_sizes[i] % config->num_processes == 0);
             size_t shard_size = pointers_sizes[i] / config->num_processes;
             ptrdiff_t shard_offset = (ptrdiff_t)shard_size * config->process_rank;
-            for (int iter = 0; iter < 10; ++iter) {
-                printf("RANK%d Before reduce scatter pointer[%d]=%.12f\n", multi_gpu_config.process_rank, iter, pointers[iter]);
+            for (int iter = 0; iter < shard_size; ++iter) {
+                if ( pointers[iter] > 0)
+                    printf("RANK%d Before reduce scatter pointer[%d]=%.12f\n", multi_gpu_config.process_rank, iter, pointers[iter]);
             }
             ncclCheck(ncclReduceScatter(
                     pointers[i], pointers[i] + shard_offset,
@@ -556,8 +557,9 @@ void multi_gpu_async_reduce_gradient(
                     ncclFloatX, ncclAvg,
                     config->nccl_comm, config->nccl_stream
             ));
-            for (int iter = 0; iter < 10; ++iter) {
-                printf("RANK%d After reduce pointer[%d]=%.12f\n", multi_gpu_config.process_rank, iter, pointers[iter] + shard_offset);
+            for (int iter = 0; iter < shard_size; ++iter) {
+                if ( pointers[iter] > 0)
+                    printf("RANK%d After reduce pointer[%d]=%.12f\n", multi_gpu_config.process_rank, iter, pointers[iter] + shard_offset);
             }
         }
     }

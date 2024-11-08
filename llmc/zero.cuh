@@ -517,6 +517,7 @@ void multi_gpu_async_reduce_gradient(
     if (config->num_processes == 1) {
         return; // no multi-GPU, just exit.
     }
+    printf("NCCL numproc = [%d]", config->num_processes);
 
 #ifdef MULTI_GPU
     NVTX_RANGE_FN();
@@ -530,12 +531,18 @@ void multi_gpu_async_reduce_gradient(
     ncclCheck(ncclGroupStart()); // NCCL group: aggregate all pointers in a single NCCL GPU kernel.
     for (int i = 0; i < N; ++i) {
         if(config->zero_stage == 0) {
+            for (int iter = 0; iter < 10; ++iter) {
+                printf("RANK%d Before reduce pointer[%d]=%.2f\n", multi_gpu_config.process_rank, iter, pointers[iter]);
+            }
             ncclCheck(ncclAllReduce(
                     pointers[i], pointers[i],
                     pointers_sizes[i],
                     ncclFloatX, ncclAvg,
                     config->nccl_comm, config->nccl_stream
             ));
+            for (int iter = 0; iter < 10; ++iter) {
+                printf("RANK%d After reduce pointer[%d]=%.2f\n", multi_gpu_config.process_rank, iter, pointers[iter]);
+            }
         } else if(config->zero_stage == 1) {
             assert(pointers_sizes[i] % config->num_processes == 0);
             size_t shard_size = pointers_sizes[i] / config->num_processes;
